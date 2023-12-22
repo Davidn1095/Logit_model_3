@@ -1,0 +1,81 @@
+# Reading Data
+# Reads data from 'CHAPMAN.DAT' file into a DataFrame 'Chapman'. Assumes no header and a unique separator.
+Chapman <- read.csv('CHAPMAN.DAT', header=F, sep='')
+
+# Assigning Column Names
+# Sets names for each column in the Chapman DataFrame for better data understanding and manipulation.
+names(Chapman) <- c("Id", "Edad", "Sistolica", "Diastolica", "Colesterol", "Altura", "Peso", "Coronarios")
+
+# Displaying Data
+# Shows the first few rows of the DataFrame for an initial inspection of the data.
+head(Chapman)
+
+# Full Logistic Regression Model
+# Fits a logistic regression model predicting 'Coronarios' using all other variables in the dataset.
+Ajuste.all <- glm(Coronarios ~ Edad + Sistolica + Diastolica + Colesterol + Altura + Peso, family=binomial, data=Chapman)
+
+# Model Summary
+# Displays a detailed summary of the fitted logistic regression model, including coefficients and statistics.
+summary(Ajuste.all)
+
+# Null Model
+# Fits a baseline logistic regression model with only an intercept (no predictors) for comparison purposes.
+Ajuste.0 <- glm(Coronarios ~ 1, family=binomial, data=Chapman)
+
+# Summary of Null Model
+# Shows the summary of the null model, useful for comparing with more complex models.
+summary(Ajuste.0)
+
+# Stepwise Model Selection
+# Performs stepwise model selection to find an optimal model starting from the null model and considering all variables.
+Ajuste.step <- step(Ajuste.0, scope=list(lower=Coronarios ~ 1, upper=Coronarios ~ Edad + Sistolica + Diastolica + Colesterol + Altura + Peso), direction="both")
+
+# Summary of Stepwise Model
+# Summarizes the model selected by the stepwise procedure.
+summary(Ajuste.step)
+
+# Confidence Intervals
+# Calculates and exponentiates the confidence intervals of the model parameters, often used to interpret logistic regression coefficients as odds ratios.
+exp(confint.default(Ajuste.step))
+
+# Goodness-of-Fit Test
+# Performs the Hosmer-Lemeshow test to evaluate the goodness-of-fit of the stepwise model.
+Bondad.Hosmer.Step <- hoslem.test(Chapman$Coronarios, fitted.values(Ajuste.step))
+
+# Displaying Test Results
+# Shows the results of the Hosmer-Lemeshow goodness-of-fit test.
+Bondad.Hosmer.Step
+
+# Residuals and Influence Measures
+# Calculates Pearson and Deviance residuals and Cook's distance, important for diagnosing model fit and identifying influential observations.
+rstandard(Ajuste.step, type="pearson")
+rstandard(Ajuste.step, type="deviance")
+cooks.distance(Ajuste.step)
+
+# Binary Classification Based on Predicted Probabilities
+# Creates a binary classification based on the predicted probabilities from the model using 0.5 as a threshold.
+Categoria.Pred <- ifelse(fitted.values(Ajuste.step) >= 0.5, 1, 0)
+
+# Displaying Binary Classification
+# Shows the binary classification results.
+Categoria.Pred
+
+# Confusion Matrix
+# Generates a confusion matrix to compare the actual 'Coronarios' values against the predicted binary categories.
+table(Chapman$Coronarios, Categoria.Pred)
+
+# ROC Curve Analysis
+# Calculates and stores the Receiver Operating Characteristic (ROC) curve for the model.
+CurvaROC <- roc(Chapman$Coronarios, fitted.values(Ajuste.step))
+
+# Displaying ROC Curve
+# Plots the ROC curve, a graphical representation of the model's diagnostic ability.
+plot(CurvaROC)
+
+# Stepwise Model with Interaction Terms
+# Performs another stepwise model selection, this time including interaction terms among 'Edad', 'Peso', and 'Colesterol'.
+Ajuste.Step.Inter <- step(Ajuste.step, scope=list(lower=Coronarios ~ Edad + Peso + Colesterol, upper=Coronarios ~ Edad * Peso * Colesterol), direction="both")
+
+# Summary of Model with Interaction Terms
+# Summarizes the model with interaction terms, showing how these interactions affect the 'Coronarios' prediction.
+summary(Ajuste.Step.Inter)
